@@ -3,19 +3,23 @@
 session_start();
 
 // Базовый URL сайта
-define('BASE_URL', 'http://sigroup/'); 
-// if ($_SERVER['SERVER_NAME'] == 'localhost' || $_SERVER['SERVER_NAME'] == '127.0.0.1') {
-//     define('BASE_URL', 'http://sigroup/');
-// } else {
-//     // Автоматическое определение для GitHub/hosting
-//     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https://" : "http://";
-//     define('BASE_URL', $protocol . $_SERVER['HTTP_HOST'] . '/');
-// }
-// Конфигурация для OpenServer
-define('DB_HOST', 'localhost');     
-define('DB_NAME', 'sigroup'); 
-define('DB_USER', 'root');         
-define('DB_PASS', '');        
+// devtunnels/ngrok проксируют запрос на localhost, а настоящий публичный хост
+// кладут в X-Forwarded-Host — поэтому он приоритетнее обычного Host.
+$host = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? 'sigroup';
+$host = explode(':', $host)[0]; // отбрасываем порт (localhost:80 -> localhost)
+if ($host === 'sigroup' || $host === 'localhost' || $host === '127.0.0.1') {
+    define('BASE_URL', 'http://sigroup/');
+} else {
+    $isHttps = (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+        || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+    $protocol = $isHttps ? 'https://' : 'http://';
+    define('BASE_URL', $protocol . ($_SERVER['HTTP_X_FORWARDED_HOST'] ?? $host) . '/');
+}
+// Конфигурация БД: переменные окружения (Docker) с фолбэком на OpenServer по умолчанию
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?: 'sigroup');
+define('DB_USER', getenv('DB_USER') ?: 'root');
+define('DB_PASS', getenv('DB_PASS') ?: '');
   
 // Настройки сайта
 define('SITE_NAME', 'Научная группа');

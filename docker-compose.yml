@@ -1,0 +1,39 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      DB_HOST: db
+      DB_NAME: sigroup
+      DB_USER: sigroup
+      DB_PASS: ${DB_PASS:?укажите пароль в .env}
+    volumes:
+      - uploads:/var/www/html/upload
+      - uploads2:/var/www/html/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: sigroup
+      MYSQL_USER: sigroup
+      MYSQL_PASSWORD: ${DB_PASS:?укажите пароль в .env}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS:?укажите root-пароль в .env}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/db-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASS}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  db_data:
+  uploads:
+  uploads2:
